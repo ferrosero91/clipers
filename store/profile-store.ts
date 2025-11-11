@@ -52,7 +52,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       }
     } catch (error) {
       console.error("Error loading profile:", error)
-      set({ isLoading: false })
+      set({ profile: null, isLoading: false })
     }
   },
 
@@ -99,18 +99,18 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   loadATSProfile: async (userId?: string) => {
     try {
       const { profile } = get()
-      // Only load ATS profile for candidates
-      if (profile && "role" in profile && (profile as User).role === "CANDIDATE") {
+      // Only load ATS profile for candidates, never for companies or admins
+      if (profile && "role" in profile && (profile as User).role === "CANDIDATE" && (profile as User).role !== "COMPANY" && (profile as User).role !== "ADMIN") {
         const endpoint = userId ? `/ats-profiles/user/${userId}` : "/ats-profiles/me"
         const atsProfile = await apiClient.get<ATSProfile>(endpoint)
         set({ atsProfile })
       } else {
-        // Companies don't have ATS profiles
+        // Companies and admins don't have ATS profiles
         set({ atsProfile: null })
       }
     } catch (error) {
       console.error("Error loading ATS profile:", error)
-      // ATS profile might not exist yet
+      // ATS profile might not exist yet or user doesn't have access
       set({ atsProfile: null })
     }
   },

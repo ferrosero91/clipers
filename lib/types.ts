@@ -136,6 +136,8 @@ export interface JobMatch {
   score: number
   explanation: string
   matchedSkills: string[]
+  status: "PENDING" | "ACCEPTED" | "REJECTED"
+  applicationMessage?: string
   createdAt: string
 }
 

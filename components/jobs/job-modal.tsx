@@ -124,18 +124,18 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
             {/* Company Info */}
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={job.company?.logo || "/placeholder.svg"} alt={job.company?.name} />
+                <AvatarImage src={job.company?.logo || "/placeholder.svg"} alt={job.company?.name || "Empresa"} />
                 <AvatarFallback>
                   <FiBriefcase className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1">
-                <h3 className="text-xl font-semibold">{job.company?.name}</h3>
-                <p className="text-muted-foreground">{job.company?.industry}</p>
+                <h3 className="text-xl font-semibold">{job.company?.name || "Empresa no especificada"}</h3>
+                <p className="text-muted-foreground">{job.company?.industry || "Industria no especificada"}</p>
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-1">
                     <FiMapPin className="h-4 w-4" />
-                    <span>{job.location}</span>
+                    <span>{job.location || "Ubicación no especificada"}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <FiClock className="h-4 w-4" />
@@ -161,7 +161,7 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
             </div>
 
             {/* Requirements */}
-            {job.requirements.length > 0 && (
+            {job.requirements && job.requirements.length > 0 && (
               <>
                 <Separator />
                 <div className="space-y-4">
@@ -179,7 +179,7 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
             )}
 
             {/* Skills */}
-            {job.skills.length > 0 && (
+            {job.skills && job.skills.length > 0 && (
               <>
                 <Separator />
                 <div className="space-y-4">
@@ -202,10 +202,10 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-semibold">Postulantes y ranking IA</h4>
-                    <span className="text-sm text-muted-foreground">{applicants.length} postulantes</span>
+                    <span className="text-sm text-muted-foreground">{applicants?.length || 0} postulantes</span>
                   </div>
                   <div className="space-y-3">
-                    {matches.slice(0, 3).map((match) => (
+                    {matches && matches.slice(0, 3).map((match) => (
                       <div key={match.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <Avatar className="h-10 w-10">
@@ -232,7 +232,7 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
                       <div className="space-y-3">
                         <Separator />
                         <h5 className="font-semibold">Todos los candidatos rankeados</h5>
-                        {matches.map((match) => (
+                        {matches && matches.map((match) => (
                           <div key={match.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                             <div className="flex items-center space-x-3">
                               <Avatar className="h-8 w-8">
@@ -255,13 +255,13 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
                             </div>
                           </div>
                         ))}
-                        {matches.length === 0 && (
+                        {(!matches || matches.length === 0) && (
                           <div className="text-sm text-muted-foreground">Aún no hay ranking IA disponible.</div>
                         )}
 
                         <Separator />
                         <h5 className="font-semibold">Postulaciones sin ranking</h5>
-                        {applicants.map((app) => (
+                        {applicants && applicants.map((app) => (
                           <div key={app.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                             <div className="flex items-center space-x-3">
                               <Avatar className="h-8 w-8">
@@ -283,7 +283,7 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
                             </div>
                           </div>
                         ))}
-                        {applicants.length === 0 && (
+                        {(!applicants || applicants.length === 0) && (
                           <div className="text-sm text-muted-foreground">No hay postulaciones registradas.</div>
                         )}
                       </div>
@@ -313,7 +313,7 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Ubicación</span>
-                  <span className="text-sm font-medium">{job.location}</span>
+                  <span className="text-sm font-medium">{job.location || "No especificada"}</span>
                 </div>
 
                 {job.company?.size && (
@@ -337,22 +337,25 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
                   {isFetchingCandidates ? "Cargando candidatos..." : "Ver todos los candidatos"}
                 </Button>
               ) : null}
-
-              {job.company?.website && (
-                <Button variant="outline" className="w-full bg-transparent" asChild>
-                  <a href={job.company.website} target="_blank" rel="noopener noreferrer">
-                    <FiExternalLink className="h-4 w-4 mr-2" />
-                    Visitar sitio web
-                  </a>
-                </Button>
-              )}
             </div>
 
             {/* Company Info */}
             {job.company && (
               <div className="bg-muted/50 rounded-lg p-6 space-y-4">
                 <h4 className="font-semibold">Sobre la empresa</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">{job.company.description}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{job.company.description || "Descripción no disponible"}</p>
+                {job.company.website && (
+                  <div className="mt-4">
+                    <a
+                      href={job.company.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-sm"
+                    >
+                      Visitar sitio web
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { JobModal } from "./job-modal"
 import { useAuthStore } from "@/store/auth-store"
 import { useJobStore } from "@/store/job-store"
+import { useToast } from "@/hooks/use-toast"
 import type { Job } from "@/lib/types"
 import { FiMapPin, FiClock, FiDollarSign, FiBriefcase, FiUsers } from "react-icons/fi"
 
@@ -23,16 +24,23 @@ export function JobCard({ job }: JobCardProps) {
   const [showModal, setShowModal] = useState(false)
   const [isApplying, setIsApplying] = useState(false)
   const { user } = useAuthStore()
-  const { applyToJob } = useJobStore()
+  const { applyToJob, hasAppliedToJob, getApplicationForJob } = useJobStore()
+  const { toast } = useToast()
+
+  const hasApplied = hasAppliedToJob(job.id)
+  const application = getApplicationForJob(job.id)
 
   const handleApply = async (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsApplying(true)
     try {
-      await applyToJob(job.id)
-      // Show success message or update UI
-    } catch (error) {
+      const application = await applyToJob(job.id)
+      toast({ title: "Aplicación enviada", description: "Tu aplicación ha sido enviada correctamente." })
+      // Update UI to show applied status
+    } catch (error: any) {
       console.error("Error applying to job:", error)
+      const errorMessage = error.response?.data?.message || "Error al aplicar al trabajo"
+      toast({ title: "Error", description: errorMessage, variant: "destructive" })
     } finally {
       setIsApplying(false)
     }
@@ -160,8 +168,16 @@ export function JobCard({ job }: JobCardProps) {
             )}
 
             {!isCompany && (
-              <Button size="sm" onClick={handleApply} disabled={isApplying}>
-                {isApplying ? "Aplicando..." : "Aplicar"}
+              <Button
+                size="sm"
+                onClick={handleApply}
+                disabled={isApplying || hasApplied}
+                variant={hasApplied ? "secondary" : "default"}
+              >
+                {isApplying ? "Aplicando..." :
+                 hasApplied ? `Aplicado${application?.status === "PENDING" ? " (Pendiente)" :
+                                 application?.status === "ACCEPTED" ? " (Aceptado)" :
+                                 application?.status === "REJECTED" ? " (Rechazado)" : ""}` : "Aplicar"}
               </Button>
             )}
           </div>

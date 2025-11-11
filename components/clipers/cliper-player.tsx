@@ -14,7 +14,7 @@ type Props = {
 export function CliperPlayer({ cliper }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [playing, setPlaying] = useState(false)
-  const [muted, setMuted] = useState(false)
+  const [muted, setMuted] = useState(true) // Start muted for autoplay
   const [volume, setVolume] = useState(0.9)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -75,48 +75,46 @@ export function CliperPlayer({ cliper }: Props) {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        <div className="relative w-full aspect-video bg-black">
-          {cliper.videoUrl ? (
-            <video
-              ref={videoRef}
-              src={cliper.videoUrl}
-              poster={cliper.thumbnailUrl || undefined}
-              preload="metadata"
-              className="h-full w-full"
-              onClick={togglePlay}
-              onPlay={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-              controls={false}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-              {cliper.status === "PROCESSING" ? "Procesando video…" : "Video no disponible"}
-            </div>
-          )}
+    <div className="relative w-full h-full bg-black">
+      {cliper.videoUrl ? (
+        <video
+          ref={videoRef}
+          src={cliper.videoUrl}
+          poster={cliper.thumbnailUrl || undefined}
+          preload="metadata"
+          className="h-full w-full"
+          autoPlay
+          muted
+          onClick={togglePlay}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          controls={false}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+          {cliper.status === "PROCESSING" ? "Procesando video…" : "Video no disponible"}
+        </div>
+      )}
 
-          {/* Controles */}
-          <div className="absolute inset-x-0 bottom-0 z-10 m-0 p-3">
-            <div className="flex items-center gap-2 rounded-md bg-black/40 p-2 backdrop-blur-sm">
-              <Button variant="ghost" size="icon" onClick={togglePlay} aria-label={playing ? "Pausar" : "Reproducir"}>
-                {playing ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white" />}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={toggleMute} aria-label={muted ? "Activar sonido" : "Silenciar"}>
-                {muted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
-              </Button>
-              <div className="w-24">
-                <Slider value={[volume]} max={1} step={0.05} onValueChange={handleVolume} />
-              </div>
-              <div className="ml-auto">
-                <Button variant="ghost" size="icon" onClick={toggleFullscreen} aria-label="Pantalla completa">
-                  <Fullscreen className="h-5 w-5 text-white" />
-                </Button>
-              </div>
-            </div>
+      {/* Controles */}
+      <div className="absolute inset-x-0 bottom-0 z-10 m-0 p-3">
+        <div className="flex items-center gap-2 rounded-md bg-black/40 p-2 backdrop-blur-sm">
+          <Button variant="ghost" size="icon" onClick={togglePlay} aria-label={playing ? "Pausar" : "Reproducir"}>
+            {playing ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white" />}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={toggleMute} aria-label={muted ? "Activar sonido" : "Silenciar"}>
+            {muted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
+          </Button>
+          <div className="w-24">
+            <Slider value={[volume]} max={1} step={0.05} onValueChange={handleVolume} />
+          </div>
+          <div className="ml-auto">
+            <Button variant="ghost" size="icon" onClick={toggleFullscreen} aria-label="Pantalla completa">
+              <Fullscreen className="h-5 w-5 text-white" />
+            </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

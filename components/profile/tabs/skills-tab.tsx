@@ -95,19 +95,19 @@ export function SkillsTab({ atsProfile, isOwnProfile }: SkillsTabProps) {
         </div>
 
         {/* Skills by Category */}
-        {skills.length > 0 ? (
+        {skills && skills.length > 0 ? (
           <div className="space-y-6">
             {categories.map((category) => {
               const categorySkills = getSkillsByCategory(category.key)
-              if (categorySkills.length === 0) return null
+              if (!categorySkills || categorySkills.length === 0) return null
 
               return (
                 <Card key={category.key}>
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">{category.label}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {categorySkills.map((skill) => (
-                        <div key={skill.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      {categorySkills.map((skill, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                           <div className="flex items-center space-x-3">
                             <span className="font-medium">{skill.name}</span>
                             <Badge className={`text-xs ${getLevelColor(skill.level)}`}>
@@ -118,7 +118,7 @@ export function SkillsTab({ atsProfile, isOwnProfile }: SkillsTabProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(skill.id)}
+                              onClick={() => handleDelete(index.toString())}
                               className="h-8 w-8 p-0"
                             >
                               <FiTrash2 className="h-3 w-3" />

@@ -42,7 +42,7 @@ export function EditExperienceModal({ experience, open, onOpenChange }: EditExpe
         endDate: experience.endDate || "",
         description: experience.description,
       })
-      setSkills(experience.skills.join(", "))
+      setSkills(experience.skills && experience.skills.length > 0 ? experience.skills.join(", ") : "")
       setIsCurrentJob(!experience.endDate)
     }
   }, [experience])
@@ -55,15 +55,24 @@ export function EditExperienceModal({ experience, open, onOpenChange }: EditExpe
 
     try {
       const experienceData: Partial<Experience> = {
-        ...formData,
-        endDate: isCurrentJob ? undefined : formData.endDate,
+        company: formData.company,
+        position: formData.position,
+        startDate: formData.startDate,
+        endDate: isCurrentJob ? "" : formData.endDate,
+        description: formData.description,
         skills: skills
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
       }
 
-      await updateExperience(experience.id, experienceData)
+      const experienceIndex = (experience as any).index !== undefined ? (experience as any).index : experience.id
+
+      if (experienceIndex === undefined) {
+        throw new Error("No se pudo identificar la experiencia a actualizar")
+      }
+
+      await updateExperience(experienceIndex, experienceData)
 
       toast({
         title: "Experiencia actualizada",
@@ -74,7 +83,7 @@ export function EditExperienceModal({ experience, open, onOpenChange }: EditExpe
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar la experiencia. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo actualizar la experiencia. Inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {

@@ -6,7 +6,7 @@ class ApiClient {
 
   private constructor() {
     // Normalize baseURL to always include /api
-    const rawBase = process.env.NEXT_PUBLIC_API_URL || "https://backend.clipers.pro/api"
+    const rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
     const trimmedBase = rawBase.replace(/\/+$/, "")
     const normalizedBase = trimmedBase.endsWith("/api") ? trimmedBase : `${trimmedBase}/api`
 

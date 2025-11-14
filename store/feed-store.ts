@@ -12,6 +12,10 @@ interface FeedState {
   likePost: (postId: string) => Promise<void>
   addComment: (postId: string, content: string) => Promise<void>
   loadComments: (postId: string) => Promise<Comment[]>
+  updateComment: (postId: string, commentId: string, content: string) => Promise<void>
+  deleteComment: (postId: string, commentId: string) => Promise<void>
+  updatePost: (postId: string, content: string) => Promise<void>
+  deletePost: (postId: string) => Promise<void>
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
@@ -95,7 +99,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
           post.id === postId
             ? {
                 ...post,
-                comments: [...post.comments, comment],
+                comments: [...(post.comments || []), comment],
               }
             : post,
         ),
@@ -113,6 +117,78 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     } catch (error) {
       console.error("Error loading comments:", error)
       return []
+    }
+  },
+
+  updateComment: async (postId: string, commentId: string, content: string) => {
+    try {
+      const updatedComment = await apiClient.put<Comment>(`/posts/${postId}/comments/${commentId}`, {
+        content,
+      })
+
+      set((state) => ({
+        posts: state.posts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                comments: (post.comments || []).map((comment) =>
+                  comment.id === commentId ? updatedComment : comment
+                ),
+              }
+            : post
+        ),
+      }))
+    } catch (error) {
+      console.error("Error updating comment:", error)
+      throw error
+    }
+  },
+
+  deleteComment: async (postId: string, commentId: string) => {
+    try {
+      await apiClient.delete(`/posts/${postId}/comments/${commentId}`)
+
+      set((state) => ({
+        posts: state.posts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                comments: (post.comments || []).filter((comment) => comment.id !== commentId),
+              }
+            : post
+        ),
+      }))
+    } catch (error) {
+      console.error("Error deleting comment:", error)
+      throw error
+    }
+  },
+
+  updatePost: async (postId: string, content: string) => {
+    try {
+      const updatedPost = await apiClient.put<Post>(`/posts/${postId}`, { content })
+
+      set((state) => ({
+        posts: state.posts.map((post) =>
+          post.id === postId ? { ...post, content: updatedPost.content } : post
+        ),
+      }))
+    } catch (error) {
+      console.error("Error updating post:", error)
+      throw error
+    }
+  },
+
+  deletePost: async (postId: string) => {
+    try {
+      await apiClient.delete(`/posts/${postId}`)
+
+      set((state) => ({
+        posts: state.posts.filter((post) => post.id !== postId),
+      }))
+    } catch (error) {
+      console.error("Error deleting post:", error)
+      throw error
     }
   },
 }))

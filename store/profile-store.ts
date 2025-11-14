@@ -79,7 +79,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       const formData = new FormData()
       formData.append("file", file)
       const res = await apiClient.upload<{ imageUrl: string }>("/users/upload/avatar", formData)
-      await get().updateProfile({ profileImage: res.imageUrl })
+      // Recargar el perfil para obtener la imagen actualizada
+      await get().loadProfile()
     } catch (error) {
       console.error("Error uploading avatar:", error)
       throw error
@@ -89,7 +90,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   deleteUserAvatar: async () => {
     try {
       await apiClient.delete<{ status: string }>("/users/profile/avatar")
-      await get().updateProfile({ profileImage: "" })
+      // Recargar el perfil para reflejar la eliminación
+      await get().loadProfile()
     } catch (error) {
       console.error("Error deleting avatar:", error)
       throw error
@@ -149,7 +151,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         atsProfile: state.atsProfile
           ? {
               ...state.atsProfile,
-              education: state.atsProfile.education.map((edu) => (edu.id === id ? updatedEducation : edu)),
+              education: state.atsProfile.education.map((edu, index) => 
+                (index === parseInt(id) || edu.id === id) ? { ...edu, ...updatedEducation } : edu
+              ),
             }
           : null,
       }))
@@ -166,7 +170,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         atsProfile: state.atsProfile
           ? {
               ...state.atsProfile,
-              education: state.atsProfile.education.filter((edu) => edu.id !== id),
+              education: state.atsProfile.education.filter((edu, index) => 
+                index !== parseInt(id) && edu.id !== id
+              ),
             }
           : null,
       }))
@@ -200,7 +206,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         atsProfile: state.atsProfile
           ? {
               ...state.atsProfile,
-              experience: state.atsProfile.experience.map((exp) => (exp.id === id ? updatedExperience : exp)),
+              experience: state.atsProfile.experience.map((exp, index) => 
+                (index === parseInt(id) || exp.id === id) ? { ...exp, ...updatedExperience } : exp
+              ),
             }
           : null,
       }))
@@ -217,7 +225,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         atsProfile: state.atsProfile
           ? {
               ...state.atsProfile,
-              experience: state.atsProfile.experience.filter((exp) => exp.id !== id),
+              experience: state.atsProfile.experience.filter((exp, index) => 
+                index !== parseInt(id) && exp.id !== id
+              ),
             }
           : null,
       }))
@@ -268,7 +278,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         atsProfile: state.atsProfile
           ? {
               ...state.atsProfile,
-              skills: state.atsProfile.skills.filter((s) => s.id !== id),
+              skills: state.atsProfile.skills.filter((s, index) => 
+                index !== parseInt(id) && s.id !== id
+              ),
             }
           : null,
       }))

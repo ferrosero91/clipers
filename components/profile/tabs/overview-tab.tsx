@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { EditATSSummaryModal } from "../modals/edit-ats-summary-modal"
 import { useAuthStore } from "@/store/auth-store"
 import type { User, Company, ATSProfile } from "@/lib/types"
-import { FiBriefcase, FiBookOpen, FiStar, FiMapPin, FiUsers, FiEdit3 } from "react-icons/fi"
+import { FiBriefcase, FiBookOpen, FiStar, FiMapPin, FiUsers, FiEdit3, FiPhone } from "react-icons/fi"
 
 interface OverviewTabProps {
   profile: User | Company | null
@@ -86,6 +86,31 @@ export function OverviewTab({ profile, atsProfile }: OverviewTabProps) {
   return (
     <>
       <div className="grid gap-6">
+        {/* Contact Information */}
+        {(userProfile.phone || userProfile.address) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Información de contacto</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {userProfile.phone && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <FiPhone className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Teléfono:</span>
+                  <span>{userProfile.phone}</span>
+                </div>
+              )}
+              {userProfile.address && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <FiMapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Dirección:</span>
+                  <span>{userProfile.address}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* ATS Summary */}
         {atsProfile && (
           <Card>
@@ -116,22 +141,28 @@ export function OverviewTab({ profile, atsProfile }: OverviewTabProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {atsProfile.experience.slice(0, 2).map((exp) => (
-                  <div key={exp.id} className="space-y-2">
-                    <div>
-                      <h4 className="font-medium">{exp.position}</h4>
-                      <p className="text-sm text-muted-foreground">{exp.company}</p>
+                {atsProfile.experience && atsProfile.experience.length > 0 ? (
+                  atsProfile.experience.slice(0, 2).map((exp, index) => (
+                    <div key={index} className="space-y-2">
+                      <div>
+                        <h4 className="font-medium">{exp.position}</h4>
+                        <p className="text-sm text-muted-foreground">{exp.company}</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{exp.description}</p>
+                      {exp.skills && exp.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {exp.skills.slice(0, 3).map((skill, skillIndex) => (
+                            <Badge key={skillIndex} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{exp.description}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {exp.skills.slice(0, 3).map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hay experiencia registrada</p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -146,13 +177,17 @@ export function OverviewTab({ profile, atsProfile }: OverviewTabProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {atsProfile.education.slice(0, 2).map((edu) => (
-                  <div key={edu.id} className="space-y-1">
-                    <h4 className="font-medium">{edu.degree}</h4>
-                    <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                    <p className="text-sm text-muted-foreground">{edu.field}</p>
-                  </div>
-                ))}
+                {atsProfile.education && atsProfile.education.length > 0 ? (
+                  atsProfile.education.slice(0, 2).map((edu, index) => (
+                    <div key={index} className="space-y-1">
+                      <h4 className="font-medium">{edu.degree}</h4>
+                      <p className="text-sm text-muted-foreground">{edu.institution}</p>
+                      <p className="text-sm text-muted-foreground">{edu.field}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hay educación registrada</p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -169,10 +204,11 @@ export function OverviewTab({ profile, atsProfile }: OverviewTabProps) {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {atsProfile.skills.slice(0, 10).map((skill) => (
-                  <Badge key={skill.id} variant="secondary" className="text-sm">
-                    {skill.name}
-                    <span className="ml-1 text-xs opacity-70">
+                {atsProfile.skills && atsProfile.skills.length > 0 ? (
+                  atsProfile.skills.slice(0, 10).map((skill, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">
+                      {skill.name}
+                      <span className="ml-1 text-xs opacity-70">
                       {skill.level === "EXPERT"
                         ? "★★★★"
                         : skill.level === "ADVANCED"
@@ -182,7 +218,10 @@ export function OverviewTab({ profile, atsProfile }: OverviewTabProps) {
                             : "★"}
                     </span>
                   </Badge>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hay habilidades registradas</p>
+                )}
               </div>
             </CardContent>
           </Card>

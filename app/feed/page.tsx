@@ -46,11 +46,11 @@ export default function FeedPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-[1500px]">
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,740px)_220px] gap-24">
+        <div className="container mx-auto px-4 py-8 max-w-[1600px]">
+          <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] xl:grid-cols-[260px_1fr_260px] gap-8">
             {/* Left Sidebar */}
-            <aside className="space-y-6 md:sticky md:top-44 lg:top-48 md:-ml-12 lg:-ml-14 xl:-ml-16">
-              <div className="bg-card border rounded-md px-2 py-5 w-full md:w-[200px] md:ml-auto md:mr-0">
+            <aside className="space-y-6 lg:sticky lg:top-24 self-start">
+              <div className="bg-card border rounded-md px-2 py-5 w-full">
                 <h2 className="sr-only">Explorar</h2>
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
                   <TabsList className="flex flex-col w-full items-stretch gap-2 bg-transparent p-0">
@@ -60,7 +60,7 @@ export default function FeedPage() {
                 </Tabs>
               </div>
 
-              <div className="bg-card border rounded-md p-2 w-full md:w-[200px] md:ml-auto md:mr-0">
+              <div className="bg-card border rounded-md p-2 w-full">
                   <h2 className="text-xs font-semibold mb-2">Filtros</h2>
                 <div className="space-y-3">
                   <div>
@@ -104,7 +104,7 @@ export default function FeedPage() {
             </aside>
 
             {/* Main Content */}
-            <main className="md:ml-12 lg:ml-16 xl:ml-20">
+            <main className="w-full max-w-3xl mx-auto lg:mx-0">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -191,6 +191,14 @@ export default function FeedPage() {
                 )}
               </div>
             </main>
+
+            {/* Right Sidebar - Hidden on mobile and tablet */}
+            <aside className="hidden xl:block space-y-6 sticky top-24 self-start">
+              <div className="bg-card border rounded-md p-4">
+                <h3 className="font-semibold mb-3">Sugerencias</h3>
+                <p className="text-sm text-muted-foreground">Próximamente: Perfiles sugeridos y tendencias</p>
+              </div>
+            </aside>
           </div>
         </div>
       </div>

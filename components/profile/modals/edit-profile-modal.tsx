@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { RemoteAvatar } from "@/components/ui/remote-avatar"
 import { useProfileStore } from "@/store/profile-store"
 import { useAuthStore } from "@/store/auth-store"
 import { useToast } from "@/hooks/use-toast"
@@ -20,54 +20,72 @@ interface EditProfileModalProps {
 }
 
 export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) {
-  const { profile, updateProfile, uploadUserAvatar, deleteUserAvatar } = useProfileStore()
+  const { profile, updateProfile, uploadUserAvatar, deleteUserAvatar, loadProfile } = useProfileStore()
   const { user } = useAuthStore()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    name: "",
-    description: "",
-    industry: "",
-    size: "",
-    website: "",
-    location: "",
-  })
+  const isCompany = user?.role === "COMPANY"
+  
+  // Inicializar formData con los valores del perfil
+  const getInitialFormData = () => {
+    if (!profile) {
+      return {
+        firstName: "",
+        lastName: "",
+        phone: "",
+        address: "",
+        name: "",
+        description: "",
+        industry: "",
+        size: "",
+        website: "",
+        location: "",
+      }
+    }
+    
+    if (isCompany) {
+      const company = profile as Company
+      return {
+        firstName: "",
+        lastName: "",
+        phone: "",
+        address: "",
+        name: company.name || "",
+        description: company.description || "",
+        industry: company.industry || "",
+        size: company.size || "",
+        website: company.website || "",
+        location: company.location || "",
+      }
+    } else {
+      const userProfile = profile as User
+      return {
+        firstName: userProfile.firstName || "",
+        lastName: userProfile.lastName || "",
+        phone: userProfile.phone || "",
+        address: userProfile.address || "",
+        name: "",
+        description: "",
+        industry: "",
+        size: "",
+        website: "",
+        location: "",
+      }
+    }
+  }
+  
+  const [formData, setFormData] = useState(getInitialFormData())
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
     setAvatarFile(file)
     if (file) {
       const url = URL.createObjectURL(file)
       setAvatarPreview(url)
-      setIsLoading(true)
-      try {
-        await uploadUserAvatar(file)
-        toast({
-          title: "Foto actualizada",
-          description: "Tu nueva foto se guardó correctamente.",
-        })
-        // Limpiar selección y preview para evitar doble subida
-        URL.revokeObjectURL(url)
-        setAvatarPreview(null)
-        setAvatarFile(null)
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ""
-        }
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo subir la foto.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
     } else {
       setAvatarPreview(null)
     }
@@ -100,37 +118,12 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
     }
   }
 
-  const isCompany = user?.role === "COMPANY"
-
+  // Actualizar formData cuando el modal se abre o el perfil cambia
   useEffect(() => {
-    if (profile) {
-      if (isCompany) {
-        const company = profile as Company
-        setFormData({
-          firstName: "",
-          lastName: "",
-          name: company.name,
-          description: company.description,
-          industry: company.industry,
-          size: company.size,
-          website: company.website || "",
-          location: company.location,
-        })
-      } else {
-        const userProfile = profile as User
-        setFormData({
-          firstName: userProfile.firstName,
-          lastName: userProfile.lastName,
-          name: "",
-          description: "",
-          industry: "",
-          size: "",
-          website: "",
-          location: "",
-        })
-      }
+    if (open && profile) {
+      setFormData(getInitialFormData())
     }
-  }, [profile, isCompany])
+  }, [open, profile, isCompany])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -147,20 +140,34 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
           location: formData.location,
         })
       } else {
+        // Subir imagen primero si hay una seleccionada
         if (avatarFile) {
           await uploadUserAvatar(avatarFile)
-          setAvatarFile(null)
         }
+
+        // Luego actualizar los demás datos del perfil
         await updateProfile({
           firstName: formData.firstName,
           lastName: formData.lastName,
+          phone: formData.phone,
+          address: formData.address,
         })
+
+        // Recargar el perfil para asegurar que los datos estén actualizados
+        await loadProfile()
       }
 
       toast({
         title: "Perfil actualizado",
         description: "Tu perfil ha sido actualizado exitosamente.",
       })
+
+      // Limpiar estado
+      setAvatarFile(null)
+      setAvatarPreview(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
 
       onOpenChange(false)
     } catch (error) {
@@ -256,10 +263,19 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
               <div className="space-y-2">
                 <Label>Foto de perfil</Label>
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={avatarPreview || (profile as User)?.profileImage || "/placeholder.svg"} alt="Avatar" />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
+                  {avatarPreview ? (
+                    <div className="h-16 w-16 rounded-full overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={avatarPreview} alt="Preview" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <RemoteAvatar
+                      className="h-16 w-16"
+                      src={(profile as User)?.profileImage}
+                      alt="Avatar"
+                      fallback="U"
+                    />
+                  )}
 
                   {/* Input de archivo oculto */}
                   <Input
@@ -305,6 +321,27 @@ export function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) 
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Número de celular</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="ej. +57 300 123 4567"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Dirección</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="ej. Calle 123 #45-67, Bogotá"
+                />
               </div>
             </>
           )}

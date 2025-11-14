@@ -3,30 +3,70 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { JobCard } from "@/components/jobs/job-card"
 import { JobFilters } from "@/components/jobs/job-filters"
 import { CreateJobModal } from "@/components/jobs/create-job-modal"
+import { JobModal } from "@/components/jobs/job-modal"
 import { useJobStore } from "@/store/job-store"
 import { useAuthStore } from "@/store/auth-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FiPlus, FiSearch, FiBriefcase, FiRefreshCw } from "react-icons/fi"
+import type { Job } from "@/lib/types"
 
 export default function JobsPage() {
   const { jobs, isLoading, hasMore, searchJobs, filters } = useJobStore()
   const { user } = useAuthStore()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState("")
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [showJobModal, setShowJobModal] = useState(false)
 
   useEffect(() => {
     searchJobs("", {}, true)
   }, [searchJobs])
 
+  useEffect(() => {
+    // Check if there's a job to open from URL params
+    const openJobId = searchParams.get('openJob')
+    if (openJobId) {
+      // Try to get job from sessionStorage first
+      const storedJob = sessionStorage.getItem('selectedJob')
+      if (storedJob) {
+        try {
+          const job = JSON.parse(storedJob)
+          setSelectedJob(job)
+          setShowJobModal(true)
+          sessionStorage.removeItem('selectedJob')
+          // Clean URL
+          router.replace('/jobs')
+        } catch (e) {
+          console.error('Error parsing stored job:', e)
+        }
+      } else {
+        // Try to find job in current jobs list
+        const job = jobs.find(j => j.id === openJobId)
+        if (job) {
+          setSelectedJob(job)
+          setShowJobModal(true)
+          router.replace('/jobs')
+        }
+      }
+    }
+  }, [searchParams, jobs, router])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    searchJobs(searchQuery, filters, true)
+    if (searchQuery.trim()) {
+      searchJobs(searchQuery.trim(), filters, true)
+    } else {
+      searchJobs("", filters, true)
+    }
   }
 
   const handleLoadMore = () => {
@@ -55,6 +95,11 @@ export default function JobsPage() {
               <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
                 <FiRefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
+              {!isCompany && (
+                <Button variant="outline" onClick={() => router.push("/jobs/my-applications")}>
+                  Mis Aplicaciones
+                </Button>
+              )}
               {isCompany && (
                 <Button onClick={() => setShowCreateModal(true)}>
                   <FiPlus className="h-4 w-4 mr-2" />
@@ -72,7 +117,16 @@ export default function JobsPage() {
                 <Input
                   placeholder="Buscar empleos por título, empresa o habilidades..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    // Búsqueda en tiempo real con debounce
+                    if (e.target.value.trim().length >= 3 || e.target.value.trim().length === 0) {
+                      const timeoutId = setTimeout(() => {
+                        searchJobs(e.target.value.trim(), filters, true)
+                      }, 500)
+                      return () => clearTimeout(timeoutId)
+                    }
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -166,6 +220,18 @@ export default function JobsPage() {
 
         {/* Create Job Modal */}
         {isCompany && <CreateJobModal open={showCreateModal} onOpenChange={setShowCreateModal} />}
+
+        {/* Job Detail Modal */}
+        {selectedJob && (
+          <JobModal 
+            job={selectedJob} 
+            open={showJobModal} 
+            onOpenChange={(open) => {
+              setShowJobModal(open)
+              if (!open) setSelectedJob(null)
+            }} 
+          />
+        )}
       </div>
     </ProtectedRoute>
   )

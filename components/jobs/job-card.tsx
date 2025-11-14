@@ -32,14 +32,24 @@ export function JobCard({ job }: JobCardProps) {
 
   const handleApply = async (e: React.MouseEvent) => {
     e.stopPropagation()
+    
+    // Double check if already applied
+    if (hasApplied) {
+      toast({ 
+        title: "Ya aplicaste", 
+        description: "Ya has aplicado a este empleo anteriormente.", 
+        variant: "default" 
+      })
+      return
+    }
+    
     setIsApplying(true)
     try {
       const application = await applyToJob(job.id)
       toast({ title: "Aplicación enviada", description: "Tu aplicación ha sido enviada correctamente." })
-      // Update UI to show applied status
     } catch (error: any) {
       console.error("Error applying to job:", error)
-      const errorMessage = error.response?.data?.message || "Error al aplicar al trabajo"
+      const errorMessage = error.response?.data?.message || error.message || "Error al aplicar al trabajo"
       toast({ title: "Error", description: errorMessage, variant: "destructive" })
     } finally {
       setIsApplying(false)
@@ -156,29 +166,55 @@ export function JobCard({ job }: JobCardProps) {
           {/* Actions */}
           <div className="flex items-center justify-between pt-2 border-t">
             {isCompany && isOwnJob ? (
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <FiUsers className="h-4 w-4" />
-                <span>Ver candidatos</span>
-              </div>
+              <>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <FiUsers className="h-4 w-4" />
+                  <span>Ver candidatos</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    window.location.href = `/jobs/${job.id}/applicants`
+                  }}
+                >
+                  Gestionar
+                </Button>
+              </>
             ) : (
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <FiClock className="h-4 w-4" />
-                <span>Ver detalles</span>
-              </div>
-            )}
-
-            {!isCompany && (
-              <Button
-                size="sm"
-                onClick={handleApply}
-                disabled={isApplying || hasApplied}
-                variant={hasApplied ? "secondary" : "default"}
-              >
-                {isApplying ? "Aplicando..." :
-                 hasApplied ? `Aplicado${application?.status === "PENDING" ? " (Pendiente)" :
-                                 application?.status === "ACCEPTED" ? " (Aceptado)" :
-                                 application?.status === "REJECTED" ? " (Rechazado)" : ""}` : "Aplicar"}
-              </Button>
+              <>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <FiClock className="h-4 w-4" />
+                  <span>Ver detalles</span>
+                </div>
+                {!isCompany && (
+                  <>
+                    {hasApplied && application ? (
+                      <Badge 
+                        variant={
+                          application.status === "ACCEPTED" ? "default" :
+                          application.status === "REJECTED" ? "destructive" :
+                          "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {application.status === "ACCEPTED" ? "✓ Aceptado" :
+                         application.status === "REJECTED" ? "✗ Rechazado" :
+                         "⏳ Pendiente"}
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleApply}
+                        disabled={isApplying}
+                      >
+                        {isApplying ? "Aplicando..." : "Aplicar"}
+                      </Button>
+                    )}
+                  </>
+                )}
+              </>
             )}
           </div>
         </CardContent>

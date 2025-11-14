@@ -6,7 +6,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { RemoteAvatar } from "@/components/ui/remote-avatar"
 import { useAuthStore } from "@/store/auth-store"
 import { useFeedStore } from "@/store/feed-store"
 import { apiClient } from "@/lib/api"
@@ -85,13 +85,12 @@ export function CreatePost() {
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-start space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.profileImage || "/placeholder.svg"} alt={user?.firstName} />
-              <AvatarFallback>
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
-              </AvatarFallback>
-            </Avatar>
+            <RemoteAvatar
+              className="h-10 w-10"
+              src={user?.profileImage}
+              alt={`${user?.firstName} ${user?.lastName}`}
+              fallback={`${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`}
+            />
             <div className="flex-1 space-y-3">
               <Textarea
                 placeholder="¿Qué está pasando en tu carrera profesional?"

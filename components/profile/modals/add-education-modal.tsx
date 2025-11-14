@@ -38,8 +38,12 @@ export function AddEducationModal({ open, onOpenChange }: AddEducationModalProps
 
     try {
       const educationData: Omit<Education, "id"> = {
-        ...formData,
-        endDate: isCurrentStudy ? undefined : formData.endDate,
+        institution: formData.institution,
+        degree: formData.degree,
+        field: formData.field,
+        startDate: formData.startDate,
+        endDate: isCurrentStudy ? "" : formData.endDate,
+        description: formData.description || "",
       }
 
       await addEducation(educationData)

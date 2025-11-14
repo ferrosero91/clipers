@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuthStore } from "@/store/auth-store"
 import { useJobStore } from "@/store/job-store"
+import { ApplicantsList } from "./applicants-list"
+import { ApplyJobModal } from "./apply-job-modal"
 import type { Job } from "@/lib/types"
 import { FiMapPin, FiBriefcase, FiClock, FiUsers, FiExternalLink } from "react-icons/fi"
 import { useToast } from "@/hooks/use-toast"
@@ -21,48 +24,56 @@ interface JobModalProps {
 }
 
 export function JobModal({ job, open, onOpenChange }: JobModalProps) {
-  const [isApplying, setIsApplying] = useState(false)
-  const [hasApplied, setHasApplied] = useState(false)
+  const [showApplyModal, setShowApplyModal] = useState(false)
   const [isFetchingCandidates, setIsFetchingCandidates] = useState(false)
   const [showAllCandidates, setShowAllCandidates] = useState(false)
   const { toast } = useToast()
   const { user } = useAuthStore()
-  const { applyToJob, getApplicants, rankApplicants, matches, applicants } = useJobStore()
+  const { applyToJob, getJobApplications, updateApplicationStatus, applicants, hasAppliedToJob, getApplicationForJob } = useJobStore()
 
   const isCompany = user?.role === "COMPANY"
   const isOwnJob = job.company?.userId === user?.id
+  const hasApplied = hasAppliedToJob(job.id)
+  const application = getApplicationForJob(job.id)
 
   useEffect(() => {
     if (open && isCompany && isOwnJob) {
-      getApplicants(job.id)
-      rankApplicants(job.id)
+      getJobApplications(job.id)
     }
-  }, [open, isCompany, isOwnJob, job.id, getApplicants, rankApplicants])
+  }, [open, isCompany, isOwnJob, job.id, getJobApplications])
 
-  const handleApply = async () => {
-    setIsApplying(true)
+  const handleApply = async (message?: string) => {
+    if (hasApplied) {
+      toast({ 
+        title: "Ya aplicaste", 
+        description: "Ya has aplicado a este empleo anteriormente.", 
+        variant: "default" 
+      })
+      return
+    }
+    
     try {
-      await applyToJob(job.id)
-      setHasApplied(true)
-      toast({ title: "Postulación enviada", description: "Has aplicado correctamente a este empleo.", variant: "default" })
+      await applyToJob(job.id, message)
+      toast({ 
+        title: "¡Aplicación enviada!", 
+        description: "Tu aplicación ha sido enviada correctamente. Puedes ver el estado en 'Mis Aplicaciones'.", 
+        variant: "default" 
+      })
       onOpenChange(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error applying to job:", error)
-      toast({ title: "Error al aplicar", description: "No se pudo completar la postulación.", variant: "destructive" })
-    } finally {
-      setIsApplying(false)
+      throw error
     }
   }
 
   const handleViewAllCandidates = async () => {
     setIsFetchingCandidates(true)
     try {
-      await getApplicants(job.id)
-      await rankApplicants(job.id)
+      await getJobApplications(job.id)
       setShowAllCandidates(true)
       toast({
         title: "Candidatos cargados",
-        description: `${applicants.length} postulantes, ${matches.length} con ranking IA`,
+        description: `${applicants.length} postulantes encontrados`,
         variant: "default",
       })
     } catch (error) {
@@ -70,6 +81,21 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
       toast({ title: "Error", description: "No se pudieron cargar los candidatos.", variant: "destructive" })
     } finally {
       setIsFetchingCandidates(false)
+    }
+  }
+
+  const handleUpdateStatus = async (applicationId: string, status: string) => {
+    try {
+      await updateApplicationStatus(applicationId, status)
+      await getJobApplications(job.id)
+      toast({
+        title: "Estado actualizado",
+        description: `La aplicación ha sido ${status === "ACCEPTED" ? "aceptada" : "rechazada"}`,
+        variant: "default",
+      })
+    } catch (error) {
+      console.error("Error updating status:", error)
+      toast({ title: "Error", description: "No se pudo actualizar el estado.", variant: "destructive" })
     }
   }
 
@@ -195,100 +221,18 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
               </>
             )}
 
-            {/* Applicants & Ranking (for company users) */}
-            {isCompany && isOwnJob && (
+            {/* Applicants (for company users) */}
+            {isCompany && isOwnJob && applicants && applicants.length > 0 && (
               <>
                 <Separator />
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-semibold">Postulantes y ranking IA</h4>
-                    <span className="text-sm text-muted-foreground">{applicants?.length || 0} postulantes</span>
+                    <h4 className="text-lg font-semibold">Postulantes</h4>
+                    <Badge variant="secondary">{applicants.length} candidatos</Badge>
                   </div>
-                  <div className="space-y-3">
-                    {matches && matches.slice(0, 3).map((match) => (
-                      <div key={match.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={match.user?.profileImage || "/placeholder.svg"} />
-                            <AvatarFallback>
-                              {match.user?.firstName?.[0]}
-                              {match.user?.lastName?.[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {match.user?.firstName} {match.user?.lastName}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{match.explanation}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-primary">{Math.round(match.score * 100)}%</div>
-                          <div className="text-xs text-muted-foreground">Match</div>
-                        </div>
-                      </div>
-                    ))}
-                    {showAllCandidates && (
-                      <div className="space-y-3">
-                        <Separator />
-                        <h5 className="font-semibold">Todos los candidatos rankeados</h5>
-                        {matches && matches.map((match) => (
-                          <div key={match.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={match.user?.profileImage || "/placeholder.svg"} />
-                                <AvatarFallback>
-                                  {match.user?.firstName?.[0]}
-                                  {match.user?.lastName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {match.user?.firstName} {match.user?.lastName}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{match.explanation}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-bold text-primary">{Math.round(match.score * 100)}%</div>
-                              <div className="text-xs text-muted-foreground">Match</div>
-                            </div>
-                          </div>
-                        ))}
-                        {(!matches || matches.length === 0) && (
-                          <div className="text-sm text-muted-foreground">Aún no hay ranking IA disponible.</div>
-                        )}
-
-                        <Separator />
-                        <h5 className="font-semibold">Postulaciones sin ranking</h5>
-                        {applicants && applicants.map((app) => (
-                          <div key={app.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={app.candidate?.profileImage || "/placeholder.svg"} />
-                                <AvatarFallback>
-                                  {app.candidate?.firstName?.[0]}
-                                  {app.candidate?.lastName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {app.candidate?.firstName} {app.candidate?.lastName}
-                                </p>
-                                <p className="text-xs text-muted-foreground">Estado: {app.status}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground">{new Date(app.createdAt).toLocaleDateString()}</div>
-                            </div>
-                          </div>
-                        ))}
-                        {(!applicants || applicants.length === 0) && (
-                          <div className="text-sm text-muted-foreground">No hay postulaciones registradas.</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Haz clic en "Ver todos los candidatos" para gestionar las aplicaciones
+                  </p>
                 </div>
               </>
             )}
@@ -328,14 +272,52 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
             {/* Actions */}
             <div className="space-y-3">
               {!isCompany ? (
-                <Button onClick={handleApply} disabled={isApplying || hasApplied} className="w-full">
-                  {isApplying ? "Aplicando..." : hasApplied ? "Aplicado" : "Aplicar a este empleo"}
-                </Button>
+                <>
+                  {hasApplied && application ? (
+                    <div className="w-full p-4 bg-muted rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Estado de tu aplicación</span>
+                        <Badge 
+                          variant={
+                            application.status === "ACCEPTED" ? "default" :
+                            application.status === "REJECTED" ? "destructive" :
+                            "secondary"
+                          }
+                        >
+                          {application.status === "ACCEPTED" ? "✓ Aceptado" :
+                           application.status === "REJECTED" ? "✗ Rechazado" :
+                           "⏳ Pendiente"}
+                        </Badge>
+                      </div>
+                      {application.score > 0 && (
+                        <div className="text-sm text-muted-foreground">
+                          Compatibilidad: <span className="font-semibold text-primary">{Math.round(application.score * 100)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Button onClick={() => setShowApplyModal(true)} className="w-full">
+                      Aplicar a este empleo
+                    </Button>
+                  )}
+                </>
               ) : isOwnJob ? (
-                <Button variant="outline" className="w-full bg-transparent" onClick={handleViewAllCandidates} disabled={isFetchingCandidates}>
-                  <FiUsers className="h-4 w-4 mr-2" />
-                  {isFetchingCandidates ? "Cargando candidatos..." : "Ver todos los candidatos"}
-                </Button>
+                <>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      window.location.href = `/jobs/${job.id}/applicants`
+                    }}
+                  >
+                    <FiUsers className="h-4 w-4 mr-2" />
+                    Gestionar candidatos
+                  </Button>
+                  {applicants && applicants.length > 0 && (
+                    <div className="text-center text-sm text-muted-foreground">
+                      {applicants.length} candidato{applicants.length !== 1 ? "s" : ""} en total
+                    </div>
+                  )}
+                </>
               ) : null}
             </div>
 
@@ -361,6 +343,16 @@ export function JobModal({ job, open, onOpenChange }: JobModalProps) {
           </div>
         </div>
       </DialogContent>
+
+      {/* Apply Modal */}
+      {!isCompany && !hasApplied && (
+        <ApplyJobModal
+          job={job}
+          open={showApplyModal}
+          onOpenChange={setShowApplyModal}
+          onApply={handleApply}
+        />
+      )}
     </Dialog>
   )
 }

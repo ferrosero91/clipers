@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/auth-store"
 
@@ -14,12 +14,19 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { isAuthenticated, user, checkAuth } = useAuthStore()
   const router = useRouter()
+  const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    checkAuth()
+    const verifyAuth = async () => {
+      await checkAuth()
+      setIsChecking(false)
+    }
+    verifyAuth()
   }, [checkAuth])
 
   useEffect(() => {
+    if (isChecking) return // Don't redirect while checking
+
     if (!isAuthenticated) {
       router.push("/auth/login")
       return
@@ -29,9 +36,9 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
       router.push("/unauthorized")
       return
     }
-  }, [isAuthenticated, user, requiredRole, router])
+  }, [isAuthenticated, user, requiredRole, router, isChecking])
 
-  if (!isAuthenticated) {
+  if (isChecking || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

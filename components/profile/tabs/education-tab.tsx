@@ -63,10 +63,10 @@ export function EducationTab({ atsProfile, isOwnProfile }: EducationTabProps) {
         </div>
 
         {/* Education List */}
-        {education.length > 0 ? (
+        {education && education.length > 0 ? (
           <div className="space-y-4">
-            {education.map((edu) => (
-              <Card key={edu.id}>
+            {education.map((edu, index) => (
+              <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="space-y-2 flex-1">
@@ -84,10 +84,14 @@ export function EducationTab({ atsProfile, isOwnProfile }: EducationTabProps) {
 
                     {isOwnProfile && (
                       <div className="flex items-center space-x-2 ml-4">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingEducation(edu)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingEducation({ ...edu, index } as any)}
+                        >
                           <FiEdit3 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(edu.id)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(index.toString())}>
                           <FiTrash2 className="h-4 w-4" />
                         </Button>
                       </div>

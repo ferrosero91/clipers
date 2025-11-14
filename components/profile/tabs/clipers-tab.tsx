@@ -51,10 +51,10 @@ export function ClipersTab({ profile, isOwnProfile }: ClipersTabProps) {
           )}
         </div>
 
-        {jobs.length > 0 ? (
+        {jobs && jobs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.map((job) => (
-              <div key={job.id} className="bg-card rounded-lg border p-6">
+            {jobs.map((job, index) => (
+              <div key={index} className="bg-card rounded-lg border p-6">
                 <h3 className="font-semibold mb-2">{job.title}</h3>
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{job.description}</p>
                 <div className="flex items-center justify-between text-sm">
@@ -107,10 +107,10 @@ export function ClipersTab({ profile, isOwnProfile }: ClipersTabProps) {
           )}
         </div>
 
-        {clipers.length > 0 ? (
+        {clipers && clipers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clipers.map((cliper) => (
-              <CliperCard key={cliper.id} cliper={cliper} />
+            {clipers.map((cliper, index) => (
+              <CliperCard key={index} cliper={cliper} />
             ))}
           </div>
         ) : (

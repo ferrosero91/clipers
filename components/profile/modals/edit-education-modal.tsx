@@ -55,11 +55,21 @@ export function EditEducationModal({ education, open, onOpenChange }: EditEducat
 
     try {
       const educationData: Partial<Education> = {
-        ...formData,
-        endDate: isCurrentStudy ? undefined : formData.endDate,
+        institution: formData.institution,
+        degree: formData.degree,
+        field: formData.field,
+        startDate: formData.startDate,
+        endDate: isCurrentStudy ? "" : formData.endDate,
+        description: formData.description || "",
       }
 
-      await updateEducation(education.id, educationData)
+      const educationIndex = (education as any).index !== undefined ? (education as any).index : education.id
+      
+      if (educationIndex === undefined) {
+        throw new Error("No se pudo identificar la educación a actualizar")
+      }
+
+      await updateEducation(educationIndex, educationData)
 
       toast({
         title: "Educación actualizada",
@@ -70,7 +80,7 @@ export function EditEducationModal({ education, open, onOpenChange }: EditEducat
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar la educación. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo actualizar la educación. Inténtalo de nuevo.",
         variant: "destructive",
       })
     } finally {

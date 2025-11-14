@@ -6,7 +6,7 @@ interface JobState {
   jobs: Job[]
   matches: JobMatch[]
   applicants: JobApplication[]
-  myApplications: JobMatch[]
+  myApplications: JobApplication[]
   isLoading: boolean
   hasMore: boolean
   page: number
@@ -15,7 +15,7 @@ interface JobState {
   getJobMatches: (jobId: string) => Promise<void>
   getApplicants: (jobId: string) => Promise<void>
   rankApplicants: (jobId: string) => Promise<void>
-  applyToJob: (jobId: string, message?: string) => Promise<JobMatch>
+  applyToJob: (jobId: string, message?: string) => Promise<JobApplication>
   getMyApplications: () => Promise<void>
   updateApplicationStatus: (applicationId: string, status: string) => Promise<void>
   getJobApplications: (jobId: string) => Promise<void>
@@ -24,7 +24,7 @@ interface JobState {
   deleteJob: (jobId: string) => Promise<void>
   setFilters: (filters: Partial<JobFilters>) => void
   hasAppliedToJob: (jobId: string) => boolean
-  getApplicationForJob: (jobId: string) => JobMatch | undefined
+  getApplicationForJob: (jobId: string) => JobApplication | undefined
 }
 
 interface JobFilters {
@@ -86,10 +86,10 @@ export const useJobStore = create<JobState>((set, get) => ({
         totalPages: number
       }>(`/jobs/public?${params}`)
 
-      // Load user applications if not loaded yet (always on first load or refresh)
-      if (get().myApplications.length === 0) {
+      // Always load user applications on first load or refresh to ensure we have latest data
+      if (refresh || get().myApplications.length === 0) {
         try {
-          const applicationsResponse = await apiClient.get<JobMatch[]>('/jobs/my-applications')
+          const applicationsResponse = await apiClient.get<JobApplication[]>('/jobs/my-applications')
           set({ myApplications: applicationsResponse })
         } catch (error) {
           console.error('Error loading user applications:', error)
@@ -125,7 +125,7 @@ export const useJobStore = create<JobState>((set, get) => ({
   getApplicants: async (jobId: string) => {
     try {
       console.debug(`[JOB STORE] getApplicants jobId=${jobId}`)
-      const applicants = await apiClient.get<JobApplication[]>(`/jobs/${jobId}/applicants`)
+      const applicants = await apiClient.get<JobApplication[]>(`/jobs/${jobId}/applications`)
       console.debug(`[JOB STORE] getApplicants received ${applicants.length} applicants`)
       set({ applicants })
     } catch (error) {
@@ -149,7 +149,7 @@ export const useJobStore = create<JobState>((set, get) => ({
   applyToJob: async (jobId: string, message?: string) => {
     try {
       console.debug(`[JOB STORE] applyToJob jobId=${jobId}`)
-      const application = await apiClient.post<JobMatch>(`/jobs/${jobId}/apply`, { message })
+      const application = await apiClient.post<JobApplication>(`/jobs/${jobId}/apply`, { message })
       console.debug(`[JOB STORE] applyToJob completed jobId=${jobId}`)
 
       // Add the new application to myApplications
@@ -167,7 +167,7 @@ export const useJobStore = create<JobState>((set, get) => ({
   getMyApplications: async () => {
     try {
       console.debug(`[JOB STORE] getMyApplications`)
-      const applications = await apiClient.get<JobMatch[]>('/jobs/my-applications')
+      const applications = await apiClient.get<JobApplication[]>('/jobs/my-applications')
       console.debug(`[JOB STORE] getMyApplications received ${applications.length} applications`)
       set({ myApplications: applications })
     } catch (error) {
@@ -190,12 +190,12 @@ export const useJobStore = create<JobState>((set, get) => ({
   getJobApplications: async (jobId: string) => {
     try {
       console.debug(`[JOB STORE] getJobApplications jobId=${jobId}`)
-      const applications = await apiClient.get<JobMatch[]>(`/jobs/${jobId}/applications`)
+      const applications = await apiClient.get<JobApplication[]>(`/jobs/${jobId}/applications`)
       console.debug(`[JOB STORE] getJobApplications received ${applications.length} applications`)
-      set({ matches: applications })
+      set({ applicants: applications })
     } catch (error) {
       console.error("Error getting job applications:", error)
-      set({ matches: [] })
+      set({ applicants: [] })
     }
   },
 
@@ -246,11 +246,11 @@ export const useJobStore = create<JobState>((set, get) => ({
 
   hasAppliedToJob: (jobId: string) => {
     const { myApplications } = get()
-    return myApplications.some(app => app.job && app.job.id === jobId)
+    return myApplications.some(app => app.jobId === jobId || (app.job && app.job.id === jobId))
   },
 
   getApplicationForJob: (jobId: string) => {
     const { myApplications } = get()
-    return myApplications.find(app => app.job && app.job.id === jobId)
+    return myApplications.find(app => app.jobId === jobId || (app.job && app.job.id === jobId))
   },
 }))

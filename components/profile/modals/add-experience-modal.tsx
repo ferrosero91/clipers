@@ -38,8 +38,11 @@ export function AddExperienceModal({ open, onOpenChange }: AddExperienceModalPro
 
     try {
       const experienceData: Omit<Experience, "id"> = {
-        ...formData,
-        endDate: isCurrentJob ? undefined : formData.endDate,
+        company: formData.company,
+        position: formData.position,
+        startDate: formData.startDate,
+        endDate: isCurrentJob ? "" : formData.endDate,
+        description: formData.description,
         skills: skills
           .split(",")
           .map((s) => s.trim())

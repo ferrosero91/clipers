@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { RemoteAvatar } from "@/components/ui/remote-avatar"
 import { Badge } from "@/components/ui/badge"
 import { EditProfileModal } from "./modals/edit-profile-modal"
 import { useAuthStore } from "@/store/auth-store"
@@ -27,19 +27,18 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
       <div className="bg-card rounded-lg border p-8 mb-8">
         <div className="flex flex-col md:flex-row md:items-start gap-6">
           {/* Avatar */}
-          <Avatar className="w-24 h-24">
-            <AvatarImage
-              src={isCompany ? (profile as Company).logo : (profile as User).profileImage || "/placeholder.svg"}
-              alt={
-                isCompany ? (profile as Company).name : `${(profile as User).firstName} ${(profile as User).lastName}`
-              }
-            />
-            <AvatarFallback className="text-2xl">
-              {isCompany
-                ? (profile as Company).name?.[0]
-                : `${(profile as User).firstName?.[0]}${(profile as User).lastName?.[0]}`}
-            </AvatarFallback>
-          </Avatar>
+          <RemoteAvatar
+            className="w-24 h-24"
+            src={isCompany ? (profile as Company).logo : (profile as User).profileImage}
+            alt={
+              isCompany ? (profile as Company).name : `${(profile as User).firstName} ${(profile as User).lastName}`
+            }
+            fallback={
+              isCompany
+                ? (profile as Company).name?.[0] || "C"
+                : `${(profile as User).firstName?.[0] || ""}${(profile as User).lastName?.[0] || ""}`
+            }
+          />
 
           {/* Profile Info */}
           <div className="flex-1 space-y-4">

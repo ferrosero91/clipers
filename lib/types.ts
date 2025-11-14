@@ -5,6 +5,8 @@ export interface User {
   lastName: string
   role: "CANDIDATE" | "COMPANY" | "ADMIN"
   profileImage?: string
+  phone?: string
+  address?: string
   createdAt: string
   updatedAt: string
 }
@@ -18,6 +20,14 @@ export interface Company {
   website?: string
   logo?: string
   location: string
+  foundedYear?: number
+  mission?: string
+  vision?: string
+  benefits?: string[]
+  values?: string[]
+  culture?: string
+  employeeCount?: number
+  socialMedia?: string[]
   userId: string
   createdAt: string
   updatedAt: string
@@ -133,6 +143,7 @@ export interface JobMatch {
   job?: Job
   userId: string
   user?: User
+  atsProfile?: ATSProfile
   score: number
   explanation: string
   matchedSkills: string[]
@@ -145,11 +156,15 @@ export interface JobApplication {
   id: string
   jobId: string
   job?: Job
-  candidateId: string
-  candidate?: User
-  status: "APPLIED" | "CONFIRMED" | "REJECTED"
+  userId: string
+  user?: User
+  atsProfile?: ATSProfile
+  score: number
+  explanation: string
+  matchedSkills: string[]
+  status: "PENDING" | "ACCEPTED" | "REJECTED"
+  applicationMessage?: string
   createdAt: string
-  updatedAt: string
 }
 
 export interface AuthResponse {

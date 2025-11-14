@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { UploadCliperModal } from "@/components/clipers/upload-cliper-modal"
 import { useCliperStore } from "@/store/cliper-store"
+import { useAuthStore } from "@/store/auth-store"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -29,6 +30,7 @@ export default function ClipersPage() {
   const [newComment, setNewComment] = useState("")
   const { toast } = useToast()
   const router = useRouter()
+  const { user } = useAuthStore()
   // Vista simplificada estilo YouTube: sin observer ni autoplay (limpieza de estados heredados)
 
   useEffect(() => {
@@ -74,53 +76,44 @@ export default function ClipersPage() {
   }
 
   const ensurePost = async (cliper: Cliper): Promise<string> => {
-    const existing = engagement[cliper.id]?.postId
-    if (existing) return existing
-    try {
-      const res = await apiClient.post('/posts', {
-        content: cliper.title || '',
-        type: 'VIDEO',
-        imageUrl: null,
-        videoUrl: cliper.videoUrl,
-      })
-      const postId = res.data?.id ?? res.data?.data?.id ?? res.data?.data?.data?.id
-      setEngagement((prev) => ({
-        ...prev,
-        [cliper.id]: { postId, likes: 0, isLiked: false, comments: 0 }
-      }))
-      return postId
-    } catch (e) {
-      toast({ title: "Error", description: "No se pudo preparar el post para este reel.", variant: "destructive" })
-      throw e
-    }
+    // NO crear posts automáticamente desde clipers
+    // Los clipers ya tienen su propio sistema de engagement
+    // Este método no debería usarse
+    throw new Error("No se debe crear posts automáticamente desde clipers")
   }
 
   const handleLike = async (cliper: Cliper) => {
+    // Implementar likes directamente en clipers sin crear posts
     try {
-      const postId = await ensurePost(cliper)
-      await apiClient.post(`/posts/${postId}/like`)
+      // TODO: Implementar endpoint de likes para clipers
+      const curr = engagement[cliper.id] || { likes: 0, isLiked: false, comments: 0 }
+      const newIsLiked = !curr.isLiked
+
       setEngagement((prev) => {
-        const curr = prev[cliper.id] || { postId, likes: 0, isLiked: false, comments: 0 }
-        const isLiked = !curr.isLiked
-        const likes = Math.max(0, curr.likes + (isLiked ? 1 : -1))
-        return { ...prev, [cliper.id]: { ...curr, isLiked, likes } }
+        const likes = Math.max(0, curr.likes + (newIsLiked ? 1 : -1))
+        return { ...prev, [cliper.id]: { ...curr, isLiked: newIsLiked, likes } }
+      })
+
+      toast({
+        title: "Me gusta",
+        description: newIsLiked ? "Te gusta este cliper" : "Ya no te gusta este cliper"
       })
     } catch {
-      toast({ title: "Error", description: "No se pudo dar me gusta al reel.", variant: "destructive" })
+      toast({ title: "Error", description: "No se pudo dar me gusta al cliper.", variant: "destructive" })
     }
   }
 
   const openComments = async (cliper: Cliper) => {
+    // Abrir modal de comentarios sin cargar desde posts
     try {
-      const postId = await ensurePost(cliper)
-      const res = await apiClient.get(`/posts/${postId}/comments`)
-      const comments = res.data?.data ?? res.data
-      setCommentsList(comments || [])
+      // TODO: Implementar endpoint de comentarios para clipers
+      setCommentsList([])
       setActiveCliper(cliper)
       setCommentsOpen(true)
-      setEngagement((prev) => {
-        const curr = prev[cliper.id] || { postId, likes: 0, isLiked: false, comments: 0 }
-        return { ...prev, [cliper.id]: { ...curr, comments: Array.isArray(comments) ? comments.length : curr.comments } }
+      toast({
+        title: "Comentarios deshabilitados temporalmente",
+        description: "Los comentarios en clipers estarán disponibles pronto.",
+        variant: "default"
       })
     } catch {
       toast({ title: "Error", description: "No se pudieron cargar los comentarios.", variant: "destructive" })
@@ -130,14 +123,11 @@ export default function ClipersPage() {
   const submitComment = async () => {
     if (!activeCliper || !newComment.trim()) return
     try {
-      const postId = await ensurePost(activeCliper)
-      const res = await apiClient.post(`/posts/${postId}/comments`, { content: newComment.trim() })
-      const saved = res.data?.data ?? res.data?.data ?? res.data
-      setCommentsList((prev) => [...prev, saved])
-      setNewComment("")
-      setEngagement((prev) => {
-        const curr = prev[activeCliper.id] || { postId, likes: 0, isLiked: false, comments: 0 }
-        return { ...prev, [activeCliper.id]: { ...curr, comments: curr.comments + 1 } }
+      // TODO: Implementar endpoint de comentarios para clipers
+      toast({
+        title: "Comentarios deshabilitados temporalmente",
+        description: "Los comentarios en clipers estarán disponibles pronto.",
+        variant: "default"
       })
     } catch {
       toast({ title: "Error", description: "No se pudo enviar el comentario.", variant: "destructive" })
@@ -152,16 +142,22 @@ export default function ClipersPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Clipers</h1>
-              <p className="text-muted-foreground">Presenta tu perfil profesional con videos cortos</p>
+              <p className="text-muted-foreground">
+                {user?.role === "COMPANY"
+                  ? "Descubre el talento a través de videos profesionales"
+                  : "Presenta tu perfil profesional con videos cortos"}
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" onClick={() => window.location.reload()} disabled={isLoading}>
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
-              <Button onClick={() => setShowUploadModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Subir Cliper
-              </Button>
+              {user?.role === "CANDIDATE" && (
+                <Button onClick={() => setShowUploadModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Subir Cliper
+                </Button>
+              )}
             </div>
           </div>
 
@@ -177,13 +173,17 @@ export default function ClipersPage() {
                     No hay clipers aún
                   </h3>
                   <p className="text-muted-foreground">
-                    Crea tu primer cliper para mostrar tu perfil profesional
+                    {user?.role === "COMPANY"
+                      ? "Aún no hay clipers disponibles para ver"
+                      : "Crea tu primer cliper para mostrar tu perfil profesional"}
                   </p>
                 </div>
-                <Button onClick={() => setShowUploadModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Subir tu primer Cliper
-                </Button>
+                {user?.role === "CANDIDATE" && (
+                  <Button onClick={() => setShowUploadModal(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Subir tu primer Cliper
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -210,11 +210,10 @@ export default function ClipersPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className={`text-xs ${
-                            cliper.status === "DONE" ? "bg-green-100 text-green-800" :
+                          <Badge variant="secondary" className={`text-xs ${cliper.status === "DONE" ? "bg-green-100 text-green-800" :
                             cliper.status === "PROCESSING" ? "bg-yellow-100 text-yellow-800" :
-                            cliper.status === "FAILED" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"
-                          }`}>
+                              cliper.status === "FAILED" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"
+                            }`}>
                             {cliper.status === "DONE" ? "Listo" : cliper.status === "PROCESSING" ? "Procesando" : cliper.status === "FAILED" ? "Error" : cliper.status}
                           </Badge>
                           <DropdownMenu>
@@ -375,8 +374,10 @@ export default function ClipersPage() {
           )}
         </div>
 
-        {/* Upload Modal */}
-        <UploadCliperModal open={showUploadModal} onOpenChange={setShowUploadModal} />
+        {/* Upload Modal - Solo para candidatos */}
+        {user?.role === "CANDIDATE" && (
+          <UploadCliperModal open={showUploadModal} onOpenChange={setShowUploadModal} />
+        )}
       </div>
     </ProtectedRoute>
   )

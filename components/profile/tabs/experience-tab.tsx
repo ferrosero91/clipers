@@ -76,10 +76,10 @@ export function ExperienceTab({ atsProfile, isOwnProfile }: ExperienceTabProps) 
         </div>
 
         {/* Experience List */}
-        {experiences.length > 0 ? (
+        {experiences && experiences.length > 0 ? (
           <div className="space-y-4">
-            {experiences.map((experience) => (
-              <Card key={experience.id}>
+            {experiences.map((experience, index) => (
+              <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="space-y-3 flex-1">
@@ -95,7 +95,7 @@ export function ExperienceTab({ atsProfile, isOwnProfile }: ExperienceTabProps) 
 
                       <p className="text-muted-foreground leading-relaxed">{experience.description}</p>
 
-                      {experience.skills.length > 0 && (
+                      {experience.skills && experience.skills.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {experience.skills.map((skill, index) => (
                             <Badge key={index} variant="secondary">
@@ -108,10 +108,10 @@ export function ExperienceTab({ atsProfile, isOwnProfile }: ExperienceTabProps) 
 
                     {isOwnProfile && (
                       <div className="flex items-center space-x-2 ml-4">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingExperience(experience)}>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingExperience({ ...experience, index })}>
                           <FiEdit3 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(experience.id)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(index.toString())}>
                           <FiTrash2 className="h-4 w-4" />
                         </Button>
                       </div>
